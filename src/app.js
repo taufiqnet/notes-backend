@@ -58,20 +58,47 @@ const authLimiter = rateLimit({
   },
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Root welcome endpoints (so visiting the root URL in a browser doesn't show 404)
+const rootHandler = (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Secure Note-Taking API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      notes: '/api/notes',
+      users: '/api/users',
+      posts: '/api/posts',
+    },
+  });
+};
+app.get('/', rootHandler);
+app.get('/api', rootHandler);
+
+// Health check endpoint (accessible via /api/health and /health)
+const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
-// API Routes
+// API Routes mounted on /api/* (and /* fallback for serverless rewrites)
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/auth', authLimiter, authRoutes);
+
 app.use('/api/notes', noteRoutes);
+app.use('/notes', noteRoutes);
+
 app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
+
 app.use('/api/posts', postRoutes);
+app.use('/posts', postRoutes);
 
 // Catch-all 404 handler for undefined routes
 app.use('*', (req, res) => {
