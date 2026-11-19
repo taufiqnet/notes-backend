@@ -1,0 +1,197 @@
+### Variables
+@baseUrl = http://localhost:5000/api
+@userToken = your_user_jwt_token_here
+@adminToken = your_admin_jwt_token_here
+@userId = 650000000000000000000001
+@noteId = 650000000000000000000002
+@postId = 650000000000000000000003
+
+###############################################################################
+# HEALTH CHECK
+###############################################################################
+
+### Health Check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###############################################################################
+# AUTHENTICATION & PROFILE
+###############################################################################
+
+### Register New User (Public - always creates role "user")
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Alice Cooper",
+  "email": "alice@example.com",
+  "password": "Password123!",
+  "interests": ["music", "coding", "rock"]
+}
+
+### Login User
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "Password123!"
+}
+
+### Login Admin
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "AdminPassword123!"
+}
+
+### Get Current User Profile (Auth required)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{userToken}}
+
+### Update Current User Profile (name and interests only)
+PUT {{baseUrl}}/auth/me
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "Alice Cooper Updated",
+  "interests": ["music", "software-engineering", "bass"]
+}
+
+###############################################################################
+# NOTES (User: own notes, Admin: all notes)
+###############################################################################
+
+### Create Note (Authenticated)
+POST {{baseUrl}}/notes
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "My Secret Note",
+  "content": "This is encrypted at rest and only accessible to the owner and admin."
+}
+
+### List Notes (Regular User: own notes, paginated)
+GET {{baseUrl}}/notes?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### List Notes (Admin: view all notes, paginated)
+GET {{baseUrl}}/notes?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### List Notes (Admin: filtered by owner)
+GET {{baseUrl}}/notes?owner={{userId}}&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Note By ID (Owner or Admin)
+GET {{baseUrl}}/notes/{{noteId}}
+Authorization: Bearer {{userToken}}
+
+### Update Note (Owner or Admin)
+PUT {{baseUrl}}/notes/{{noteId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "My Secret Note (Updated)",
+  "content": "Updated content with additional details."
+}
+
+### Delete Note (Owner or Admin)
+DELETE {{baseUrl}}/notes/{{noteId}}
+Authorization: Bearer {{userToken}}
+
+###############################################################################
+# USERS (Admin Only CRUD)
+###############################################################################
+
+### Admin Create User
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Bob Builder",
+  "email": "bob@example.com",
+  "password": "Password123!",
+  "role": "user",
+  "interests": ["architecture", "construction", "design"]
+}
+
+### Admin List Users (Paginated)
+GET {{baseUrl}}/users?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Admin Get User By ID
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### Admin Update User
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Bob Master Builder",
+  "role": "admin",
+  "interests": ["leadership", "cloud", "security"]
+}
+
+### Admin Delete User
+DELETE {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+###############################################################################
+# POSTS (Public Read, Authenticated Write, Author-Only Edit, Author/Admin Delete)
+###############################################################################
+
+### List Posts (Public, paginated)
+GET {{baseUrl}}/posts?page=1&limit=10
+
+### Get Post By ID (Public)
+GET {{baseUrl}}/posts/{{postId}}
+
+### Create Post (Auth required)
+POST {{baseUrl}}/posts
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Welcome to Secure Notes",
+  "content": "This is a public community post visible to everyone."
+}
+
+### Update Post (Author only)
+PUT {{baseUrl}}/posts/{{postId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Welcome to Secure Notes (Edited)",
+  "content": "Updated post body content by the author."
+}
+
+### Delete Post (Author or Admin)
+DELETE {{baseUrl}}/posts/{{postId}}
+Authorization: Bearer {{userToken}}
+
+###############################################################################
+# AGGREGATIONS
+###############################################################################
+
+### Scenario 1: Group Users by Interests (Admin Only, Paginated)
+GET {{baseUrl}}/users/grouped-by-interests?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Scenario 1: Group Users by Specific Interest Filter (Admin Only)
+GET {{baseUrl}}/users/grouped-by-interests?interest=coding&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Scenario 2: Get User With Posts (Public, Paginated Posts & Count)
+GET {{baseUrl}}/users/{{userId}}/posts?page=1&limit=10
