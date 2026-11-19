@@ -13,34 +13,50 @@ const errorHandler = require('./middleware/error');
 const app = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
-// CORS Configuration supporting comma-separated CLIENT_URL origins
+// CORS Configuration
 const rawClientUrls = process.env.CLIENT_URL || '';
 const allowedOrigins = rawClientUrls
   .split(',')
   .map((url) => url.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (
-        !origin ||
-        allowedOrigins.length === 0 ||
-        allowedOrigins.includes('*') ||
-        allowedOrigins.includes(origin)
-      ) {
-        return callback(null, true);
-      }
-      return callback(new Error('Blocked by CORS policy'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server or curl requests with no origin
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow wildcard or empty configuration
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+
+    // Allow explicit matching origin from CLIENT_URL
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Automatically allow Vercel deployments (e.g. notes-frontend-*.vercel.app)
+    if (/^https:\/\/.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Blocked by CORS policy: origin ${origin} is not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json());
